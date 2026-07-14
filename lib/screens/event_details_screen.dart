@@ -129,10 +129,6 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     }
   }
 
-  String _monthAbbr(int m) {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return months[m - 1];
-  }
 
   @override
   Widget build(BuildContext context) {
