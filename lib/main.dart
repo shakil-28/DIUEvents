@@ -1,25 +1,81 @@
 import 'dart:io';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
-import 'screens/splash_screen.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
+import 'screens/splash_screen.dart';
 
 /// Platform-safe Firebase initialization.
-/// On desktop platforms (macOS, Windows, Linux) the Firebase options may
-/// not be fully configured, so we only initialize on mobile platforms.
 Future<void> _ensureFirebase() async {
   if (kIsWeb) return;
   if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) return;
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp();
 }
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await _ensureFirebase();
+
+  // Load .env file (gitignored, contains real API keys)
+  await dotenv.load(fileName: '.env');
+
+  // Determine platform
+  final isAndroid = defaultTargetPlatform == TargetPlatform.android;
+  final isIOS = defaultTargetPlatform == TargetPlatform.iOS;
+  final isMacOS = defaultTargetPlatform == TargetPlatform.macOS;
+
+  // Get keys based on platform
+  String apiKey;
+  String appId;
+
+  if (isAndroid) {
+    apiKey = dotenv.get('FIREBASE_ANDROID_API_KEY');
+    appId = dotenv.get('FIREBASE_ANDROID_APP_ID');
+  } else if (isIOS || isMacOS) {
+    apiKey = dotenv.get('FIREBASE_IOS_API_KEY');
+    appId = dotenv.get('FIREBASE_IOS_APP_ID');
+  } else {
+    apiKey = dotenv.get('FIREBASE_WEB_API_KEY');
+    appId = dotenv.get('FIREBASE_WEB_APP_ID');
+  }
+
+  final senderId = dotenv.get('FIREBASE_MESSAGING_SENDER_ID');
+  final projectId = dotenv.get('FIREBASE_PROJECT_ID');
+  final storageBucket = dotenv.get('FIREBASE_STORAGE_BUCKET');
+
+  FirebaseOptions firebaseOptions;
+
+  if (kIsWeb) {
+    firebaseOptions = FirebaseOptions(
+      apiKey: apiKey,
+      appId: appId,
+      messagingSenderId: senderId,
+      projectId: projectId,
+      storageBucket: storageBucket,
+      measurementId: dotenv.get('FIREBASE_WEB_MEASUREMENT_ID'),
+      authDomain: '$projectId.firebaseapp.com',
+    );
+  } else if (isIOS || isMacOS) {
+    firebaseOptions = FirebaseOptions(
+      apiKey: apiKey,
+      appId: appId,
+      messagingSenderId: senderId,
+      projectId: projectId,
+      storageBucket: storageBucket,
+      iosBundleId: dotenv.get('FIREBASE_IOS_BUNDLE_ID'),
+    );
+  } else {
+    firebaseOptions = FirebaseOptions(
+      apiKey: apiKey,
+      appId: appId,
+      messagingSenderId: senderId,
+      projectId: projectId,
+      storageBucket: storageBucket,
+    );
+  }
+
+  await Firebase.initializeApp(options: firebaseOptions);
+
   runApp(const MyApp());
 }
 
