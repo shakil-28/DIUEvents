@@ -1,8 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../club_dashboard_screen.dart';
+import '../club_profile_screen.dart';
+import '../../auth/auth.dart';
 import 'package:flutter/material.dart';
 
-import '../../auth/auth.dart';
 import '../profile_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -17,6 +20,8 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool isNotificationEnabled = true;
   bool isDarkMode = false;
+  bool _isClubAdmin = false;
+  String _clubName = '';
   final User? currentUser = FirebaseAuth.instance.currentUser;
 
   @override
@@ -32,6 +37,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (isDarkMode != nowDark) {
       setState(() => isDarkMode = nowDark);
     }
+    // Check if user is a club admin
+    _checkClubAdmin();
+  }
+
+  Future<void> _checkClubAdmin() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (!mounted) return;
+      if (doc.exists && doc.data()?['role'] == 'club') {
+        setState(() {
+          _isClubAdmin = true;
+          _clubName = doc.data()?['name'] ?? 'Club';
+        });
+      }
+    } catch (_) {}
   }
 
   void _toggleDarkMode(bool value) {
@@ -117,9 +139,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
             decoration: BoxDecoration(color: sectionColor, borderRadius: BorderRadius.circular(20.0)),
             child: Column(
               children: [
-                _buildActionRow(icon: Icons.person_outline_rounded, iconColor: Colors.tealAccent, title: 'My Profile', headingColor: headingColor, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen()))),
-                _buildDivider(isDark),
-                _buildActionRow(icon: Icons.lock_outline_rounded, iconColor: Colors.amberAccent, title: 'Change Password', headingColor: headingColor, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen()))),
+                if (_isClubAdmin) ...[
+                  _buildActionRow(
+                    icon: Icons.dashboard_rounded,
+                    iconColor: const Color(0xFF4C6FFF),
+                    title: 'Club Dashboard',
+                    headingColor: headingColor,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ClubDashboardScreen(clubId: FirebaseAuth.instance.currentUser!.uid, clubName: _clubName))),
+                  ),
+                  _buildDivider(isDark),
+                _buildActionRow(icon: Icons.business_rounded, iconColor: Colors.tealAccent, title: 'Club Profile', headingColor: headingColor, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ClubProfileScreen(clubId: FirebaseAuth.instance.currentUser!.uid)))),
+              ],
+              _buildActionRow(icon: Icons.person_outline_rounded, iconColor: Colors.tealAccent, title: 'My Profile', headingColor: headingColor, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen()))),
+              _buildDivider(isDark),
+              _buildActionRow(icon: Icons.lock_outline_rounded, iconColor: Colors.amberAccent, title: 'Change Password', headingColor: headingColor, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen()))),
               ],
             ),
           ),

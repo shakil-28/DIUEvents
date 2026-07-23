@@ -6,6 +6,8 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'club_dashboard_screen.dart';
+
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -35,6 +37,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<Map<String, dynamic>> _joinedClubs = [];
   List<Map<String, dynamic>> _pendingClubs = [];
   bool _clubsLoading = true;
+  bool _isClubAdmin = false;
 
   User? get currentUser => _auth.currentUser;
 
@@ -81,6 +84,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       final userDoc = await _firestore.collection('users').doc(currentUser!.uid).get();
       final data = userDoc.data() ?? {};
+      // Check if this user is a club admin
+      _isClubAdmin = data['role'] == 'club';
       final selectedClubs = List<String>.from(data['selectedClubs'] ?? []);
 
       if (selectedClubs.isEmpty) {
@@ -556,11 +561,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            TextButton(
-                              onPressed: () => _leaveClub(clubId),
-                              style: TextButton.styleFrom(foregroundColor: Colors.red, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
-                              child: const Text('Leave', style: TextStyle(fontWeight: FontWeight.w600)),
-                            ),
+                            // Check if this user owns the club
+                          FutureBuilder<DocumentSnapshot>(
+                            future: _firestore.collection('users').doc(clubId).get(),
+                            builder: (ctx, snap) {
+                              final isOwner = snap.hasData && snap.data!['role'] == 'club';
+                              return Row(mainAxisSize: MainAxisSize.min, children: [
+                                if (isOwner) ...[
+                                  TextButton.icon(
+                                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ClubDashboardScreen(clubId: clubId, clubName: name))),
+                                    icon: Icon(Icons.dashboard_rounded, size: 16, color: accent),
+                                    label: Text('Dashboard', style: TextStyle(color: accent, fontWeight: FontWeight.w600)),
+                                  ),
+                                  const SizedBox(width: 8),
+                                ],
+                                TextButton(
+                                  onPressed: () => _leaveClub(clubId),
+                                  style: TextButton.styleFrom(foregroundColor: Colors.red, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6)),
+                                  child: const Text('Leave', style: TextStyle(fontWeight: FontWeight.w600)),
+                                ),
+                              ]);
+                            },
+                          ),
                           ],
                         ),
                       );

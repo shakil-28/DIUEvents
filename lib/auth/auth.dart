@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../screens/admin_home_screen.dart';
+import '../screens/club_dashboard_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/login_screen.dart'; // IMPORTED: Needed for the sign-out route reset
 import '../screens/sign_up_screen.dart';
@@ -42,6 +43,18 @@ class AuthService {
               context,
               MaterialPageRoute(builder: (_) => const AdminHomeScreen()),
             );
+          } else if (role == 'club') {
+            // For club accounts, show club selection first
+            final data = userDoc.data() as Map<String, dynamic>? ?? {};
+            final name = data['name'] ?? 'Club';
+            if (context.mounted) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ClubDashboardScreen(clubId: user.uid, clubName: name),
+                ),
+              );
+            }
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text("User exists, navigating to Home")),
@@ -105,6 +118,18 @@ class AuthService {
               context,
               MaterialPageRoute(builder: (_) => const AdminHomeScreen()),
             );
+          } else if (role == 'club') {
+            // For club accounts, show club selection first
+            final data = userDoc.data() as Map<String, dynamic>? ?? {};
+            final name = data['name'] ?? 'Club';
+            if (context.mounted) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ClubDashboardScreen(clubId: user.uid, clubName: name),
+                ),
+              );
+            }
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text("User exists, navigating to Home")),

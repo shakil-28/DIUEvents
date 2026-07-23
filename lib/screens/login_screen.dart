@@ -8,6 +8,7 @@ import 'components/emailField.dart';
 import 'forget_screen.dart';
 import 'sign_up_screen.dart';
 import 'admin_home_screen.dart';
+import 'club_dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -49,6 +50,12 @@ class _LoginScreenState extends State<LoginScreen> {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => const AdminHomeScreen()),
+          );
+        } else if (role == 'club') {
+          final name = userDoc['name'] ?? 'Club';
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => ClubDashboardScreen(clubId: currentUser!.uid, clubName: name)),
           );
         }
       } else {
